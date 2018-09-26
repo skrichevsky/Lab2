@@ -1,0 +1,87 @@
+BSDS 5005 Lab
+Lecture 2 - 9/19/18 
+
+```{r}
+library(ggplot2)
+# Import the lab2 data set using read.csv
+lab2 <- read.csv("C:/Users/spk2002/Downloads/lab2.csv", stringsAsFactors = FALSE)
+
+# Inspect the lab2 data set
+head(lab2)
+str(lab2)
+```
+
+```{r}
+# Calculate the means of each column
+means <- lapply(lab2, mean)
+# Calculate the standard deviations of each column
+sds <- lapply(lab2, sd)
+# Bind together the means and standard deviations
+lab2_sum <- rbind(means,sds)
+# The subject ID isn't needed, so I will index it out
+lab2_sum <- lab2_sum[,2:ncol(lab2_sum)]
+# Transpose the data set so  that it can be plotted
+lab2_sum <- t(lab2_sum)
+# I'm creating a timepoints vector which will contain the timepoints as integers
+timepoints <- c(rep(1,3), rep(2,3), rep(3,3))
+# Bind the timepoints and the data set into a data frame, lab2_sum
+lab2_sum <- as.data.frame(cbind(timepoints,lab2_sum))
+# Cast the lab2_sum timepoints as factord by first calling unlist on them
+lab2_sum$timepoints <- as.factor(unlist(lab2_sum$timepoints))
+# The means should be data frame values and not a list. I use unlist to perform this conversion.
+lab2_sum$means <- unlist(lab2_sum$means)
+# The standard deviations should be data frame values and not a list. I use unlist to perform this conversion.
+lab2_sum$sds <- unlist(lab2_sum$sds)
+# I will create group values based on the row names. By using gsub, I can gather the group names from the row names since they're all contain after the underscore. The regular expression portion will sub a blank for anything prior to and including the underscore
+lab2_sum$group <- gsub("^.*?_","",rownames(lab2_sum))
+
+# I use ggplot to begin plotting the data set lab2_sum, specifically using aes: x=timepoints, y=means. The plot components will be grouped and colored by group (e.g., pain, qol, sport)
+ggplot(lab2_sum, aes(x=timepoints,y=means, group=group, color=group)) 
+  # The geom_errorbar function will plot the errorbars which will extend from the mean +/- 1*sd. The width=.5 makes it easer to read. The position argument will shift the   lines so that they're not overlapping.
+  + geom_errorbar(aes(ymin=means-sds,ymax=means+sds, width=.5),position=position_dodge(width=.2)) 
+  # The geom_line function will plot the connecting line. The The width=.5 makes it easer to read. The position argument will shift the   lines so that they're not         overlapping.
+  + geom_line(position=position_dodge(width=.5)) 
+  # The geom_line function will plot the actual points. The The width=.5 makes it easer to read. The position argument will shift the   lines so that they're not           overlapping.
+  + geom_point(position=position_dodge(width=.2)) 
+  # I use scale_x_discrete to rename and cast the timepoints as factors with appropriate names
+  + scale_x_discrete(breaks=c(1,2,3),labels=c("baseline","one year", "two years")) 
+  # The plot contained this limit
+  + ylim(0,100) 
+  # the plot contained these x- and y-axis labels
+  + labs(x="Time of report",y="Sample mean and standard deviation") 
+  # The theme function along with legend.justification and legend.position will allow me to move the legend to the lower-right corner, with it's lower-right corner         touching the axis limit (1,0)
+  + theme(legend.justification=c(1,0),legend.position=c(1,0))
+```
+
+```{r}
+library(dplyr)
+
+# The coverage data set contains unnecessary information in the first 2 rows and is seperated by commas
+coverage <- read.csv("C:/Users/spk2002/Downloads/coverage.csv",skip=2,stringsAsFactors=FALSE,sep=",")
+head(coverage)
+str(coverage)
+tail(coverage)
+# The bottom of the data set contains unnecessary information so I will subset it out
+coverage <- coverage[1:52,]
+
+# The expenditures data set contains unnecessary information in the first 2 rows and is seperated by commas
+expenditures <- read.csv("C:/Users/spk2002/Downloads/expenditures.csv",skip=2,stringsAsFactors=FALSE,sep=",")
+head(expenditures)
+str(expenditures)
+tail(expenditures)
+# The bottom of the data set contains unnecessary information so I will subset it out
+expenditures <- expenditures[1:52,]
+
+# I will cbind the columns that I need - the identifier, which I will rename "Location"; and columns containing 2013:2016
+coverage_subset <- cbind(coverage[,1],select(coverage,contains("2013")), select(coverage,contains("2014")), select(coverage,contains("2015")), select(coverage,contains("2016")))
+colnames(coverage_subset)[1] <- "Location"
+
+# I will cbind the columns that I need - the identifier, which I will rename "Location"; and columns containing 2013:2014
+expenditures_subset <- cbind(expenditures[,1],select(expenditures,contains("2013")),select(expenditures,contains("2014")))
+colnames(expenditures_subset)[1] <- "Location"
+
+# I'm able to easy merge the data sets because they share an identifier
+merged_coverage_expenditures <- merge(coverage_subset,expenditures_subset,by="Location")
+```
+
+
